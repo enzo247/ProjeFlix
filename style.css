@@ -1,0 +1,215 @@
+:root {
+  --vermelho: #e50914;
+  --vermelho-escuro: #b20710;
+  --preto: #141414;
+  --cinza: #3a3636;
+  --borda: #0e0d0d;
+  --texto: #ffffff;
+  --texto-suave: #a8a8a8;
+  --raio: 16px;
+  --raio-campo: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: black;
+  color: var(--texto);
+}
+
+/* Cabeçalho */
+.cabecalho {
+  background: #000000;
+  padding: 1rem 2rem;
+  border-bottom: 2px solid var(--vermelho);
+}
+
+.cabecalho__titulo {
+  margin: 0;
+  font-size: 1.6rem;
+  color: var(--vermelho);
+  text-transform: uppercase;
+}
+
+.cabecalho__subtitulo {
+  margin: 0.2rem 0 0;
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+/* Conteúdo */
+main {
+  max-width: 680px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+/* Formulário */
+.formulario {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  align-items: end;
+  background: var(--cinza);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 1.25rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.campo__rotulo {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.campo__entrada,
+.campo__selecao {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--texto);
+  background: var(--preto);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-campo);
+}
+
+.campo__entrada:focus,
+.campo__selecao:focus {
+  outline: none;
+  border-color: var(--vermelho);
+}
+
+/* Botão */
+.botao {
+  grid-column: 1 / -1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.botao--primario {
+  background: var(--vermelho);
+  color: var(--texto);
+}
+
+.botao--primario:hover {
+  background: var(--vermelho-escuro);
+}
+
+/* Mensagem de erro */
+.campo__erro {
+  min-height: 1.2rem;
+  margin: 0.5rem 0 1rem;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Estatísticas */
+.estatisticas {
+  display: flex;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.estatistica {
+  flex: 1;
+  background: var(--cinza);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0.9rem;
+  text-align: center;
+}
+
+.estatistica__numero {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.estatistica__rotulo {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+/* Aviso */
+.aviso {
+  background: var(--vermelho-escuro);
+  border-radius: var(--raio);
+  padding: 0.8rem 1.1rem;
+  margin: 0 0 1rem;
+}
+
+.aviso[hidden] {
+  display: none;
+}
+
+/* Lista de tarefas */
+.lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lista > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--cinza);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0.8rem 1.1rem;
+  margin-bottom: 0.6rem;
+}
+
+.lista > li h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: normal;
+}
+
+/* Prioridade: a cor aparece na etiqueta (borda redonda não combina com faixa lateral) */
+.etiqueta {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  text-transform: capitalize;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  flex-shrink: 0;
+}
+
+.etiqueta--baixa {
+  color: #b5b5b5;
+}
+.etiqueta--media {
+  color: #e0b93a;
+  border-color: #6b5a1c;
+}
+.etiqueta--alta {
+  color: #ff6b6b;
+  border-color: #7a1d22;
+}
+
+/* Celular */
+@media (max-width: 520px) {
+  .formulario {
+    grid-template-columns: 1fr;
+  }
+}
