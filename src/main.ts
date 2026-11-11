@@ -2,7 +2,7 @@ import { campo, elemento, selecao } from "./dom";
 import { buscarTarefa, listarTarefas } from "./api";
 import type { Prioridade, Tarefa } from "./tipos";
 import { adicionarTarefa } from "./servicos";
-elemento("nome-do-sistema").textContent = "TaskFlow";
+elemento("nome-do-sistema").textContent = "ProjeFLix";
 elemento("versao").textContent = "v0.3.0";
 elemento("data-de-hoje").textContent = new Date().toLocaleDateString("pt-BR");
 // Começa vazia: quem preenche é a API (e por isso é let, não const)
