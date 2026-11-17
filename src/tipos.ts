@@ -10,4 +10,11 @@ tags: string[];
 criadaEm: Date;
 prazo?: string | null;
 }
+// NOVO: quem está logado. A API devolve isto no login.
+export interface Sessao {
+token: string;
+nome: string;
+}
+// NOVO: os números do painel. Record garante que as três chaves existam.
+export type Contagem = Record<Status, number>;
 export type NovaTarefa = Omit<Tarefa, "id" | "status" | "criadaEm">;
