@@ -1,26 +1,55 @@
 import { campo, elemento, selecao } from "./dom";
-import { buscarTarefa, listarTarefas } from "./api";
+import {
+    buscarEstatisticas,
+    criarConta,
+    encerrarSessao,
+    entrar,
+    guardarSessao,
+    listarTarefas,
+    sessaoAtual,
+} from "./api";
 import type { Prioridade, Status, Tarefa } from "./tipos";
-import { adicionarTarefa } from "./servicos";
+import {
+    existeAltaPendente,
+    filtrarPorStatus,
+    ordenarPorPrioridade,
+    pesquisarPorTitulo,
+    todasConcluidas,
+} from "./servicos";
+
 elemento("nome-do-sistema").textContent = "ProjeFLix";
 elemento("versao").textContent = "v0.3.0";
 elemento("data-de-hoje").textContent = new Date().toLocaleDateString("pt-BR");
+
 // Começa vazia: quem preenche é a API (e por isso é let, não const)
 let lista: Tarefa[] = [];
+let statusSelecionado: Status | "todos" = "todos";
+let termoDeBusca = "";
+
+function mostrarErro(erro: unknown): void {
+    const mensagem = erro instanceof Error ? erro.message : "Erro inesperado.";
+    elemento("erro").textContent = mensagem;
+}
+
 function criarItem(tarefa: Tarefa): HTMLLIElement {
     const item = document.createElement("li");
     item.className = `tarefa tarefa--${tarefa.prioridade}`;
+
     const titulo = document.createElement("h3");
     titulo.className = "tarefa__titulo";
     titulo.textContent = `#${tarefa.id} ${tarefa.titulo}`;
+
     const meta = document.createElement("div");
     meta.className = "tarefa__meta";
+
     const etiqueta = document.createElement("span");
     etiqueta.className = `etiqueta etiqueta--${tarefa.prioridade}`;
     etiqueta.textContent = tarefa.prioridade;
+
     const situacao = document.createElement("span");
     situacao.className = "etiqueta etiqueta--status";
     situacao.textContent = tarefa.status;
+
     // map de novo: cada tag vira um <span>
     const tags = tarefa.tags.map((tag) => {
         const elementoTag = document.createElement("span");
@@ -28,20 +57,52 @@ function criarItem(tarefa: Tarefa): HTMLLIElement {
         elementoTag.textContent = tag;
         return elementoTag;
     });
+
     meta.append(etiqueta, situacao, ...tags);
     item.append(titulo, meta);
     return item;
 }
-function desenhar(): void {
-    // map: o seu transformar da Aula 2, que já vem pronto
-    elemento("lista").replaceChildren(...lista.map(criarItem));
-    // filter: só as que passam no teste
-    const pendentes = lista.filter((t) => t.status === "pendente");
-    elemento("total").textContent = String(lista.length);
-    elemento("pendentes").textContent = String(pendentes.length);
+
+// Quais tarefas mostrar: filtrar, pesquisar, ordenar.
+// O filtro muda o que é MOSTRADO, nunca a lista que existe.
+function tarefasVisiveis(): Tarefa[] {
+    let resultado = lista;
+    if (statusSelecionado !== "todos") {
+        resultado = filtrarPorStatus(resultado, statusSelecionado);
+    }
+    if (termoDeBusca.trim() !== "") {
+        resultado = pesquisarPorTitulo(resultado, termoDeBusca);
+    }
+    return ordenarPorPrioridade(resultado);
 }
+
+// O painel vem pronto do banco (GROUP BY)
+async function atualizarPainel(): Promise<void> {
+    const contagem = await buscarEstatisticas();
+    const total = contagem.pendente + contagem.em_andamento + contagem.concluida;
+    elemento("total").textContent = String(total);
+    elemento("pendentes").textContent = String(contagem.pendente);
+    elemento("em-andamento").textContent = String(contagem.em_andamento);
+    elemento("concluidas").textContent = String(contagem.concluida);
+}
+
+function desenhar(): void {
+    const visiveis = tarefasVisiveis();
+    elemento("lista").replaceChildren(...visiveis.map(criarItem));
+    elemento("vazio").hidden = visiveis.length > 0;
+
+    // some: existe pelo menos uma urgente pendente?
+    elemento("aviso-urgente").classList.toggle("aviso--oculto", !existeAltaPendente(lista));
+
+    // every: todas concluídas?
+    if (todasConcluidas(lista)) {
+        console.log("Parabéns: nenhuma tarefa em aberto!");
+    }
+
+    atualizarPainel().catch(mostrarErro);
+}
+
 // O cadastro ainda grava só na tela. Na Aula 4 ele vai para o banco.
-12
 elemento("formulario").addEventListener("submit", (evento) => {
     evento.preventDefault();
     elemento("erro").textContent = "";
@@ -54,17 +115,36 @@ elemento("formulario").addEventListener("submit", (evento) => {
         campo("titulo").value = "";
         desenhar();
     } catch (erro) {
-        if (erro instanceof Error) {
-            elemento("erro").textContent = erro.message;
-        }
+        mostrarErro(erro);
     }
 });
-// O começo do programa: busca no banco, depois desenha
+
+// Os botões de filtro: um só "ouvinte" para o grupo inteiro
+elemento("filtros-status").addEventListener("click", (evento) => {
+    const alvo = evento.target;
+    if (!(alvo instanceof HTMLButtonElement)) return;
+    const escolhido = alvo.dataset.status;
+    if (!escolhido) return;
+
+    statusSelecionado = escolhido as Status | "todos";
+    for (const b of elemento("filtros-status").querySelectorAll("button")) {
+        b.classList.toggle("filtro--ativo", b === alvo);
+    }
+    desenhar();
+});
+
+// A busca filtra enquanto o usuário digita
+campo("busca").addEventListener("input", () => {
+    termoDeBusca = campo("busca").value;
+    desenhar();
+});
+
 // ---------- A tela de entrada (Aula 5) ----------
 function mostrarErroEntrada(erro: unknown): void {
     const mensagem = erro instanceof Error ? erro.message : "Erro inesperado.";
     elemento("erro-entrada").textContent = mensagem;
 }
+
 // Troca entre "Entrar" e "Criar conta"
 function mostrarFormulario(criando: boolean): void {
     elemento("form-criar").hidden = !criando;
@@ -74,66 +154,24 @@ function mostrarFormulario(criando: boolean): void {
         : "Ainda não tenho conta";
     elemento("erro-entrada").textContent = "";
 }
+
 elemento("alternar-entrada").addEventListener("click", () => {
     mostrarFormulario(elemento("form-criar").hidden === true); // escondido? então mostra
 });
-elemento("form-entrar").addEventListener("submit", async (evento) => {
-    evento.preventDefault();
-    try {
-        guardarSessao(await entrar(campo("entrar-email").value, campo("entrar-senha").value));
-        campo("entrar-senha").value = "";
-        await iniciar();
-    } catch (erro) {
-        mostrarErroEntrada(erro);
-    }
-});
-elemento("form-criar").addEventListener("submit", async (evento) => {
-    evento.preventDefault();
-    const email = campo("criar-email").value;
-    const senha = campo("criar-senha").value;
-    try {
-        await criarConta(campo("criar-nome").value, email, senha);
-        guardarSessao(await entrar(email, senha)); // criou? já entra direto
-        (elemento("form-criar") as HTMLFormElement).reset(); // não deixa a senha no campo
-        await iniciar();
-    } catch (erro) {
-        mostrarErroEntrada(erro);
-        9
-    }
-});
-elemento("botao-sair").addEventListener("click", () => {
-    encerrarSessao();
-    lista = [];
-    (elemento("form-entrar") as HTMLFormElement).reset();
-    mostrarFormulario(false); // volta sempre para "Entrar"
-    iniciar();
-});
-// ---------- O começo: com sessão, mostra o sistema; sem, a entrada ----------
-async function iniciar(): Promise<void> {
-    const sessao = sessaoAtual();
-    elemento("tela-entrada").hidden = sessao !== undefined;
-    elemento("tela-app").hidden = sessao === undefined;
-    elemento("botao-sair").hidden = sessao === undefined;
-    elemento("usuario-nome").textContent = sessao?.nome ?? "";
-    if (!sessao) {
-        return;
-    }
-    elemento("erro-entrada").textContent = "";
-    try {
-        lista = await listarTarefas();
-        desenhar();
-    } catch (erro) {
-        mostrarErro(erro);
-    }
-let statusSelecionado: Status | "todos" = "todos";
-let termoDeBusca = "";
-// as tags voltaram: cada uma vira um <span>
-const tags = tarefa.tags.map((tag) => {
-const elementoTag = document.createElement("span");
-elementoTag.className = "tag";
-elementoTag.textContent = tag;
-return elementoTag;
-});
-meta.append(etiqueta, situacao, ...tags);
+
+elemento("form-entrar").addEventListener("submit", async (evento) => { });
+
+function adicionarTarefa(
+    tarefas: Tarefa[],
+    dados: Pick<Tarefa, "titulo" | "prioridade" | "tags">,
+): void {
+    const novoId = tarefas.reduce((maiorId, tarefa) => Math.max(maiorId, tarefa.id), 0) + 1;
+    tarefas.push({
+    id: novoId,
+    titulo: dados.titulo,
+    prioridade: dados.prioridade,
+    status: "pendente",
+    tags: dados.tags,
+    });
 }
-iniciar();
+ 
